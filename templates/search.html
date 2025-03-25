@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Search Destinations{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Search Destinations</h1>
+            {% if query %}
+            <p class="lead">Search results for "{{ query }}"</p>
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            <form action="{{ url_for('search') }}" method="get" class="d-flex">
+                <input type="text" name="q" class="form-control me-2" value="{{ query }}" placeholder="Search destinations...">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Filter by Category</h5>
+                    <form action="{{ url_for('search') }}" method="get">
+                        {% if query %}
+                        <input type="hidden" name="q" value="{{ query }}">
+                        {% endif %}
+                        <div class="mb-3">
+                            <select name="category" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Categories</option>
+                                <option value="Beach" {% if category == 'Beach' %}selected{% endif %}>Beach</option>
+                                <option value="Mountain" {% if category == 'Mountain' %}selected{% endif %}>Mountain</option>
+                                <option value="City" {% if category == 'City' %}selected{% endif %}>City</option>
+                                <option value="Cultural" {% if category == 'Cultural' %}selected{% endif %}>Cultural</option>
+                                <option value="Adventure" {% if category == 'Adventure' %}selected{% endif %}>Adventure</option>
+                                <option value="Historical" {% if category == 'Historical' %}selected{% endif %}>Historical</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            {% if destinations %}
+            <div class="row g-4">
+                {% for destination in destinations %}
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        {% if destination.image %}
+                        <img src="{{ url_for('static', filename=destination.image) }}" class="card-img-top" alt="{{ destination.name }}">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='img/placeholder.jpg') }}" class="card-img-top" alt="Placeholder">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ destination.name }}</h5>
+                            <p class="card-text text-muted">
+                                <i class="bi bi-geo-alt"></i> {{ destination.location }}
+                            </p>
+                            <p class="card-text">{{ destination.description[:150] }}...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{{ url_for('destination_detail', id=destination.id) }}" class="btn btn-primary">View Details</a>
+                                <span class="badge bg-secondary">{{ destination.category }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                {% if query or category %}
+                <h3>No destinations found</h3>
+                <p class="text-muted">Try adjusting your search criteria</p>
+                {% else %}
+                <h3>Start exploring destinations</h3>
+                <p class="text-muted">Use the search bar or category filter to find amazing places</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

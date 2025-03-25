@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Itinerary - {{ itinerary.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>{{ itinerary.title }}</h1>
+                <div>
+                    <button class="btn btn-success" id="saveChanges">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                    <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Close
+                    </a>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="card-title">Trip Details</h5>
+                            <p class="text-muted">
+                                <i class="bi bi-calendar"></i>
+                                {{ itinerary.start_date.strftime('%B %d, %Y') }} -
+                                {{ itinerary.end_date.strftime('%B %d, %Y') }}
+                            </p>
+                        </div>
+                        <button class="btn btn-outline-primary" id="editDetails">
+                            <i class="bi bi-pencil"></i> Edit Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title">Itinerary Schedule</h5>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDestinationModal">
+                            <i class="bi bi-plus-circle"></i> Add Destination
+                        </button>
+                    </div>
+
+                    <div id="itineraryDays">
+                        {% set days = (itinerary.end_date - itinerary.start_date).days + 1 %}
+                        {% for day in range(days) %}
+                        <div class="day-section mb-4">
+                            <h6 class="border-bottom pb-2">
+                                Day {{ day + 1 }} - 
+                                {{ (itinerary.start_date + timedelta(days=day)).strftime('%B %d, %Y') }}
+                            </h6>
+                            
+                            {% set day_destinations = itinerary.destinations|selectattr('day_number', 'equalto', day + 1)|list %}
+                            {% if day_destinations %}
+                            {% for dest in day_destinations %}
+                            <div class="card mb-2 destination-card" data-id="{{ dest.id }}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ dest.destination.name }}</h6>
+                                            <p class="text-muted mb-1">
+                                                <i class="bi bi-geo-alt"></i> {{ dest.destination.location }}
+                                            </p>
+                                            {% if dest.notes %}
+                                            <p class="mb-0"><small>{{ dest.notes }}</small></p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary edit-notes"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editNotesModal"
+                                                    data-dest-id="{{ dest.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger remove-destination"
+                                                    data-dest-id="{{ dest.id }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            <p class="text-muted text-center py-3">No destinations planned for this day</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Trip Summary</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-calendar-range text-primary"></i>
+                            Duration: {{ days }} days
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-geo-alt text-success"></i>
+                            Destinations: {{ itinerary.destinations|length }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Travel Tips</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-clock text-warning"></i>
+                            Consider travel time between destinations
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-sun text-danger"></i>
+                            Check weather conditions
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-currency-dollar text-success"></i>
+                            Plan your budget
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-shield-check text-primary"></i>
+                            Keep emergency contacts handy
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Destination Modal -->
+<div class="modal fade" id="addDestinationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Destination</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDestinationForm">
+                    <div class="mb-3">
+                        <label for="destinationSelect" class="form-label">Select Destination</label>
+                        <select class="form-select" id="destinationSelect" required>
+                            {% for dest in destinations %}
+                            <option value="{{ dest.id }}">{{ dest.name }} - {{ dest.location }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dayNumber" class="form-label">Day</label>
+                        <select class="form-select" id="dayNumber" required>
+                            {% for day in range(days) %}
+                            <option value="{{ day + 1 }}">Day {{ day + 1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="addDestinationBtn">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Notes Modal -->
+<div class="modal fade" id="editNotesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Notes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editNotesForm">
+                    <div class="mb-3">
+                        <label for="editNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="editNotes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNotesBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Add destination to itinerary
+    $('#addDestinationBtn').click(function() {
+        const destinationId = $('#destinationSelect').val();
+        const dayNumber = $('#dayNumber').val();
+        const notes = $('#notes').val();
+
+        $.ajax({
+            url: '/itinerary/{{ itinerary.id }}/add_destination',
+            type: 'POST',
+            data: {
+                destination_id: destinationId,
+                day_number: dayNumber,
+                notes: notes
+            },
+            success: function(response) {
+                location.reload();
+            }
+        });
+    });
+
+    // Remove destination from itinerary
+    $('.remove-destination').click(function() {
+        if (confirm('Are you sure you want to remove this destination?')) {
+            const destId = $(this).data('dest-id');
+            $.ajax({
+                url: '/itinerary/{{ itinerary.id }}/remove_destination/' + destId,
+                type: 'POST',
+                success: function(response) {
+                    location.reload();
+                }
+            });
+        }
+    });
+
+    // Edit destination notes
+    let currentDestId;
+    
+    $('.edit-notes').click(function() {
+        currentDestId = $(this).data('dest-id');
+        const currentNotes = $(this).closest('.destination-card').find('small').text();
+        $('#editNotes').val(currentNotes);
+    });
+
+    $('#saveNotesBtn').click(function() {
+        const notes = $('#editNotes').val();
+        $.ajax({
+            url: '/itinerary/{{ itinerary.id }}/update_notes/' + currentDestId,
+            type: 'POST',
+            data: { notes: notes },
+            success: function(response) {
+                location.reload();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

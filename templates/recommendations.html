@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Personalized Recommendations{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">Your Personalized Recommendations</h1>
+            <p class="lead text-muted">Based on your favorites and travel preferences</p>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for destination in destinations %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 destination-card fade-in">
+                {% if destination.image %}
+                <img src="{{ url_for('static', filename='uploads/' + destination.image) }}" 
+                     class="card-img-top" alt="{{ destination.name }}">
+                {% else %}
+                <img src="{{ url_for('static', filename='img/placeholder.jpg') }}" 
+                     class="card-img-top" alt="Placeholder">
+                {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title">{{ destination.name }}</h5>
+                    <p class="card-text text-muted">
+                        <i class="bi bi-geo-alt"></i> {{ destination.location }}
+                    </p>
+                    <p class="card-text">{{ destination.description[:150] }}...</p>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary">{{ destination.category }}</span>
+                        <div class="btn-group">
+                            <a href="{{ url_for('destination_detail', id=destination.id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-info-circle"></i> Details
+                            </a>
+                            {% if current_user.is_authenticated %}
+                            <button class="btn btn-sm btn-outline-danger favorite-btn" 
+                                    data-destination-id="{{ destination.id }}">
+                                <i class="bi bi-heart"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <small class="text-muted">
+                        <i class="bi bi-star"></i>
+                        {% set avg_rating = destination.reviews|map(attribute='rating')|list|avg|default(0)|round(1) %}
+                        {{ avg_rating }} / 5.0
+                        ({{ destination.reviews|length }} reviews)
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not destinations %}
+    <div class="text-center py-5">
+        <i class="bi bi-emoji-smile display-1 text-muted"></i>
+        <h3 class="mt-3">No Recommendations Yet</h3>
+        <p class="text-muted">Start by exploring destinations and marking your favorites!</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary mt-3">
+            <i class="bi bi-compass"></i> Explore Destinations
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Handle favorite button clicks
+    $('.favorite-btn').click(function() {
+        const destinationId = $(this).data('destination-id');
+        const button = $(this);
+        
+        $.post(`/destination/${destinationId}/favorite`, function(response) {
+            if (button.find('i').hasClass('bi-heart')) {
+                button.find('i').removeClass('bi-heart').addClass('bi-heart-fill');
+            } else {
+                button.find('i').removeClass('bi-heart-fill').addClass('bi-heart');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
