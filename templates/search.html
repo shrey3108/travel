@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Search Destinations{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Search Destinations</h1>
+            {% if query %}
+            <p class="lead">Search results for "{{ query }}"</p>
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            <form action="{{ url_for('search') }}" method="get" class="d-flex">
+                <input type="text" name="q" class="form-control me-2" value="{{ query }}" placeholder="Search destinations...">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Filter by Category</h5>
+                    <form action="{{ url_for('search') }}" method="get">
+                        {% if query %}
+                        <input type="hidden" name="q" value="{{ query }}">
+                        {% endif %}
+                        <div class="mb-3">
+                            <select name="category" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Categories</option>
+                                <option value="Beach" {% if category == 'Beach' %}selected{% endif %}>Beach</option>
+                                <option value="Mountain" {% if category == 'Mountain' %}selected{% endif %}>Mountain</option>
+                                <option value="Cities" {% if category == 'Cities' %}selected{% endif %}>Cities</option>
+                                <option value="Cultural" {% if category == 'Cultural' %}selected{% endif %}>Cultural</option>
+                                <option value="Natural" {% if category == 'Natural' %}selected{% endif %}>Natural</option>
+                                <option value="Historical" {% if category == 'Historical' %}selected{% endif %}>Historical</option>
+                                <option value="Landmarks" {% if category == 'Landmarks' %}selected{% endif %}>Landmarks</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            {% if destinations %}
+            <div class="row g-4">
+                {% for destination in destinations %}
+                <div class="col-md-6" data-destination-id="{{ destination.id }}">
+                    <div class="card h-100">
+                        {% if destination.image %}
+                        <img src="{{ url_for('static', filename='uploads/' + destination.image) }}" class="card-img-top" alt="{{ destination.name }}">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='img/placeholder.jpg') }}" class="card-img-top" alt="Placeholder">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ destination.name }}</h5>
+                            <p class="card-text text-muted">
+                                <i class="bi bi-geo-alt"></i> {{ destination.location }}
+                            </p>
+                            <p class="card-text">{{ destination.description[:150] }}...</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <a href="{{ url_for('destination_detail', id=destination.id) }}" class="btn btn-primary btn-sm">View Details</a>
+                                    {% if current_user.is_authenticated and current_user.id == destination.user_id %}
+                                    <button onclick="removeDestination('{{ destination.id }}')" class="btn btn-danger btn-sm">Remove</button>
+                                    {% endif %}
+                                </div>
+                                <span class="badge bg-secondary">{{ destination.category }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                {% if query or category %}
+                <h3>No destinations found</h3>
+                <p class="text-muted">Try adjusting your search criteria</p>
+                {% else %}
+                <h3>Start exploring destinations</h3>
+                <p class="text-muted">Use the search bar or category filter to find amazing places</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function removeDestination(destinationId) {
+    if (confirm('Are you sure you want to remove this destination?')) {
+        fetch(`/destination/${destinationId}/remove`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the destination card from the UI
+                const card = document.querySelector(`[data-destination-id="${destinationId}"]`);
+                if (card) {
+                    card.remove();
+                }
+            } else {
+                alert('Failed to remove destination: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while removing the destination');
+        });
+    }
+}
+</script>
+{% endblock %}

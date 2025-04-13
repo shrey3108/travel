@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Destination{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Add New Destination</h1>
+    <div class="row">
+        <div class="col-md-8">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Destination Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="location" class="form-label">Location</label>
+                    <input type="text" class="form-control" id="location" name="location" required>
+                </div>
+                <div class="mb-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-select" id="category" name="category" required>
+                        <option value="">Select a category</option>
+                        <option value="Beach">Beach</option>
+                        <option value="Mountain">Mountain</option>
+                        <option value="City">City</option>
+                        <option value="Cultural">Cultural</option>
+                        <option value="Adventure">Adventure</option>
+                        <option value="Historical">Historical</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="image" class="form-label">Image</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary">Add Destination</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Tips for Adding Destinations</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success"></i> Use a clear, descriptive name</li>
+                        <li><i class="bi bi-check-circle text-success"></i> Provide accurate location details</li>
+                        <li><i class="bi bi-check-circle text-success"></i> Choose the most relevant category</li>
+                        <li><i class="bi bi-check-circle text-success"></i> Write a detailed description</li>
+                        <li><i class="bi bi-check-circle text-success"></i> Upload a high-quality image</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

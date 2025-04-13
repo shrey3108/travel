@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}{{ destination.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="destination-header mb-4">
+                <h1>{{ destination.name }}</h1>
+                <p class="text-muted">
+                    <i class="bi bi-geo-alt"></i> {{ destination.location }} |
+                    <span class="badge bg-secondary">{{ destination.category }}</span>
+                </p>
+            </div>
+            
+            <div class="destination-image mb-4">
+                {% if destination.image %}
+                <img src="{{ url_for('static', filename='uploads/' + destination.image) }}" class="img-fluid rounded" alt="{{ destination.name }}">
+                {% else %}
+                <img src="{{ url_for('static', filename='img/placeholder.jpg') }}" class="img-fluid rounded" alt="Placeholder">
+                {% endif %}
+            </div>
+            
+            <div class="destination-description mb-4">
+                <h2>About this Destination</h2>
+                <p>{{ destination.description }}</p>
+                <p><strong>Location:</strong> <a href="#" onclick="centerMap(); return false;">{{ destination.location }}</a></p>
+                
+                <!-- Map Container -->
+                <div id="map"></div>
+            </div>
+            
+            <div class="destination-reviews">
+                <h2>Reviews</h2>
+                {% if current_user.is_authenticated %}
+                <form method="POST" action="{{ url_for('add_review', id=destination.id) }}" class="mb-4">
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">Rating</label>
+                        <select class="form-select" id="rating" name="rating" required>
+                            <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                            <option value="4">⭐⭐⭐⭐ Very Good</option>
+                            <option value="3">⭐⭐⭐ Good</option>
+                            <option value="2">⭐⭐ Fair</option>
+                            <option value="1">⭐ Poor</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Your Review</label>
+                        <textarea class="form-control" id="content" name="content" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                </form>
+                {% endif %}
+                
+                <div class="reviews-list">
+                    {% for review in reviews %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h5 class="card-title">{{ review.author.username }}</h5>
+                                <div class="text-warning">
+                                    {% for _ in range(review.rating) %}⭐{% endfor %}
+                                </div>
+                            </div>
+                            <p class="card-text">{{ review.content }}</p>
+                            <small class="text-muted">{{ review.created_at.strftime('%B %d, %Y') }}</small>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No reviews yet. Be the first to review this destination!</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- AI Travel Assistant Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-robot"></i> AI Travel Assistant
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" id="getTravelTips">
+                            <i class="bi bi-lightbulb"></i> Get Travel Tips
+                        </button>
+                        <button class="btn btn-outline-primary" id="getItinerary">
+                            <i class="bi bi-calendar-check"></i> Generate Itinerary
+                        </button>
+                        <button class="btn btn-outline-primary" id="getPackingList">
+                            <i class="bi bi-bag-check"></i> Get Packing List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Actions</h5>
+                    {% if current_user.is_authenticated %}
+                    <button class="btn btn-outline-primary mb-2 w-100 favorite-btn" 
+                            data-destination-id="{{ destination.id }}"
+                            data-is-favorite="{{ 'true' if is_favorite else 'false' }}">
+                        <i class="bi {% if is_favorite %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                        {% if is_favorite %}Remove from Favorites{% else %}Add to Favorites{% endif %}
+                    </button>
+                    <a href="{{ url_for('new_itinerary') }}" class="btn btn-outline-success w-100">
+                        <i class="bi bi-calendar-plus"></i> Add to Itinerary
+                    </a>
+                    {% else %}
+                    <p class="text-muted">Login to add to favorites or create an itinerary</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Location Info</h5>
+                    <p class="card-text"><i class="bi bi-geo-alt"></i> {{ destination.location }}</p>
+                    <!-- Add a map here if you implement map functionality -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Results Modal -->
+<div class="modal fade" id="aiResultsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiResultsTitle">AI Recommendations</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="aiResultsContent">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+$(document).ready(function() {
+    const aiModal = new bootstrap.Modal(document.getElementById('aiResultsModal'));
+    
+    // Handle Travel Tips
+    $('#getTravelTips').click(function() {
+        $.get('/destination/{{ destination.id }}/ai-tips', function(data) {
+            $('#aiResultsTitle').text('Travel Tips for {{ destination.name }}');
+            let content = `
+                <h6>Best Time to Visit</h6>
+                <p>${data.best_time_to_visit}</p>
+                
+                <h6>Must-Visit Attractions</h6>
+                <ul>
+                    ${data.must_visit_attractions.map(attr => `<li>${attr}</li>`).join('')}
+                </ul>
+                
+                <h6>Local Cuisine</h6>
+                <ul>
+                    ${data.local_cuisine.map(food => `<li>${food}</li>`).join('')}
+                </ul>
+                
+                <h6>Cultural Customs</h6>
+                <p>${data.cultural_customs}</p>
+                
+                <h6>Transportation Tips</h6>
+                <p>${data.transportation_tips}</p>
+                
+                <h6>Safety Advice</h6>
+                <p>${data.safety_advice}</p>
+            `;
+            $('#aiResultsContent').html(content);
+            aiModal.show();
+        });
+    });
+    
+    // Handle Itinerary Generation
+    $('#getItinerary').click(function() {
+        $.get('/destination/{{ destination.id }}/ai-itinerary', function(data) {
+            $('#aiResultsTitle').text('Suggested Itinerary for {{ destination.name }}');
+            let content = '<div class="accordion" id="itineraryAccordion">';
+            
+            Object.entries(data).forEach(([day, activities], index) => {
+                content += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" 
+                                    type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#day${index}">
+                                Day ${index + 1}
+                            </button>
+                        </h2>
+                        <div id="day${index}" 
+                             class="accordion-collapse collapse ${index === 0 ? 'show' : ''}"
+                             data-bs-parent="#itineraryAccordion">
+                            <div class="accordion-body">
+                                <h6>Morning</h6>
+                                <p>${activities.morning}</p>
+                                
+                                <h6>Afternoon</h6>
+                                <p>${activities.afternoon}</p>
+                                
+                                <h6>Evening</h6>
+                                <p>${activities.evening}</p>
+                                
+                                <h6>Recommended Restaurants</h6>
+                                <p>${activities.restaurants}</p>
+                                
+                                <h6>Travel Times</h6>
+                                <p>${activities.travel_time}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            content += '</div>';
+            $('#aiResultsContent').html(content);
+            aiModal.show();
+        });
+    });
+    
+    // Handle Packing List
+    $('#getPackingList').click(function() {
+        $.get('/destination/{{ destination.id }}/packing-list', function(data) {
+            $('#aiResultsTitle').text('Packing List for {{ destination.name }}');
+            let content = '<ul class="list-group">';
+            data.forEach(item => {
+                content += `
+                    <li class="list-group-item">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="item${data.indexOf(item)}">
+                            <label class="form-check-label" for="item${data.indexOf(item)}">
+                                ${item}
+                            </label>
+                        </div>
+                    </li>
+                `;
+            });
+            content += '</ul>';
+            $('#aiResultsContent').html(content);
+            aiModal.show();
+        });
+    });
+});
+</script>
+{% endblock %}
