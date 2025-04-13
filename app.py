@@ -48,12 +48,16 @@ class Destination(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     location = db.Column(db.String(100), nullable=False)
-    category = db.Column(db.String(50), nullable=False)
+    category = db.Column(db.String(50), nullable=False)  # Categories: Beach, Mountain, Cities, Cultural, Nature, Historical, Landmarks
     image = db.Column(db.String(200))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     reviews = db.relationship('Review', backref='destination', lazy=True)
     favorites = db.relationship('Favorite', backref='destination', lazy=True)
+    
+    CATEGORIES = ['Beach', 'Mountain', 'Cities', 'Cultural', 'Natural', 'Historical', 'Landmarks']
 
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -304,10 +308,21 @@ def get_ai_travel_tips(id):
 @login_required
 def get_ai_itinerary(id):
     destination = Destination.query.get_or_404(id)
+    duration_type = request.args.get('duration_type', 'days')  # 'days' or 'months'
+    duration = int(request.args.get('duration', '7'))
+    
+    # Apply limits based on duration type
+    if duration_type == 'days':
+        duration = min(duration, 15)  # Max 15 days
+    else:  # months
+        duration = min(duration, 2)  # Max 2 months
+        duration = duration * 30  # Convert months to days
+    
     # Get user's interests from their favorite destinations
     user_favorites = Favorite.query.filter_by(user_id=current_user.id).all()
     interests = list(set([fav.destination.category for fav in user_favorites]))
-    itinerary = generate_itinerary_suggestions(destination.name, 7, interests)  # Default 7-day trip
+    
+    itinerary = generate_itinerary_suggestions(destination.name, duration, interests)
     return jsonify(itinerary)
 
 @app.route('/destination/<int:id>/packing-list')
@@ -356,25 +371,71 @@ def recommendations():
     return render_template('recommendations.html', 
                          destinations=recommended_destinations)
 
+@app.route('/destination/<int:id>/remove', methods=['POST'])
+@login_required
+def remove_destination(id):
+    destination = Destination.query.get_or_404(id)
+    if destination.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    # Remove associated records
+    Review.query.filter_by(destination_id=id).delete()
+    Favorite.query.filter_by(destination_id=id).delete()
+    ItineraryDestination.query.filter_by(destination_id=id).delete()
+    
+    # Remove image file if it exists
+    if destination.image:
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], destination.image)
+        if os.path.exists(image_path):
+            os.remove(image_path)
+    
+    db.session.delete(destination)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
 @app.route('/itinerary/new', methods=['GET', 'POST'])
 @login_required
 def new_itinerary():
     if request.method == 'POST':
-        title = request.form.get('title')
-        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d')
-        end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
-        
-        itinerary = Itinerary(
-            title=title,
-            start_date=start_date,
-            end_date=end_date,
-            user_id=current_user.id
-        )
-        
-        db.session.add(itinerary)
-        db.session.commit()
-        flash('Itinerary created successfully!', 'success')
-        return redirect(url_for('edit_itinerary', id=itinerary.id))
+        try:
+            title = request.form.get('title')
+            if not title:
+                flash('Please enter a title for the itinerary.', 'error')
+                return redirect(url_for('new_itinerary'))
+
+            start_date_str = request.form.get('start_date')
+            end_date_str = request.form.get('end_date')
+            
+            if not start_date_str or not end_date_str:
+                flash('Please select both start and end dates.', 'error')
+                return redirect(url_for('new_itinerary'))
+            
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+            
+            if start_date > end_date:
+                flash('End date must be after start date.', 'error')
+                return redirect(url_for('new_itinerary'))
+            
+            itinerary = Itinerary(
+                title=title,
+                start_date=start_date,
+                end_date=end_date,
+                user_id=current_user.id
+            )
+            
+            db.session.add(itinerary)
+            db.session.commit()
+            flash('Itinerary created successfully!', 'success')
+            return redirect(url_for('edit_itinerary', id=itinerary.id))
+            
+        except ValueError as e:
+            flash('Invalid date format. Please use YYYY-MM-DD format.', 'error')
+            return redirect(url_for('new_itinerary'))
+        except Exception as e:
+            flash('An error occurred while creating the itinerary.', 'error')
+            return redirect(url_for('new_itinerary'))
     
     return render_template('new_itinerary.html')
 
