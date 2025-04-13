@@ -28,16 +28,10 @@ def add_initial_data():
                 "description": "The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris, France. It is named after the engineer Gustave Eiffel, whose company designed and built the tower. Constructed from 1887 to 1889, it was initially criticized by some of France's leading artists and intellectuals for its design but has become a global cultural icon of France."
             },
             {
-                "name": "Santorini",
-                "location": "Cyclades, Greece",
-                "category": "Islands",
-                "description": "Santorini is one of the Cyclades islands in the Aegean Sea. It was devastated by a volcanic eruption in the 16th century BC, forever shaping its rugged landscape. The whitewashed, cubiform houses of its 2 principal towns, Fira and Oia, cling to cliffs above an underwater caldera (crater). They overlook the sea, small islands to the west and beaches made up of black, red and white lava pebbles."
-            },
-            {
-                "name": "Machu Picchu",
-                "location": "Cusco Region, Peru",
-                "category": "Historical",
-                "description": "Machu Picchu is an Incan citadel set high in the Andes Mountains in Peru, above the Urubamba River valley. Built in the 15th century and later abandoned, it's renowned for its sophisticated dry-stone walls that fuse huge blocks without the use of mortar, intriguing buildings that play on astronomical alignments and panoramic views."
+                "name": "Grand Canyon",
+                "location": "Arizona, USA",
+                "category": "Natural",
+                "description": "The Grand Canyon is a steep-sided canyon carved by the Colorado River in Arizona, United States. The Grand Canyon is 277 miles long, up to 18 miles wide and attains a depth of over a mile. For thousands of years, the area has been continuously inhabited by Native Americans, who built settlements within the canyon and its many caves."
             },
             {
                 "name": "Great Barrier Reef",
@@ -58,22 +52,10 @@ def add_initial_data():
                 "description": "Venice, the capital of northern Italy's Veneto region, is built on more than 100 small islands in a lagoon in the Adriatic Sea. It has no roads, just canals – including the Grand Canal thoroughfare – lined with Renaissance and Gothic palaces. The central square, Piazza San Marco, contains St. Mark's Basilica, which is tiled with Byzantine mosaics."
             },
             {
-                "name": "Grand Canyon",
-                "location": "Arizona, USA",
-                "category": "Natural",
-                "description": "The Grand Canyon is a steep-sided canyon carved by the Colorado River in Arizona, United States. The Grand Canyon is 277 miles long, up to 18 miles wide and attains a depth of over a mile. For thousands of years, the area has been continuously inhabited by Native Americans, who built settlements within the canyon and its many caves."
-            },
-            {
                 "name": "Dubai",
                 "location": "United Arab Emirates",
                 "category": "Cities",
                 "description": "Dubai is a city and emirate in the United Arab Emirates known for luxury shopping, ultramodern architecture and a lively nightlife scene. Burj Khalifa, an 830m-tall tower, dominates the skyscraper-filled skyline. At its foot lies Dubai Fountain, with jets and lights choreographed to music."
-            },
-            {
-                "name": "Maldives",
-                "location": "South Asia",
-                "category": "Islands",
-                "description": "The Maldives is a tropical nation in the Indian Ocean composed of 26 ring-shaped atolls, which are made up of more than 1,000 coral islands. It's known for its beaches, blue lagoons and extensive reefs. The capital, Malé, has a busy fish market, restaurants and shops on the main road, Majeedhee Magu."
             }
         ]
 
